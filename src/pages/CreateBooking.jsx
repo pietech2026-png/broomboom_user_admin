@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -27,6 +27,15 @@ const CreateBooking = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showPilotInfo, setShowPilotInfo] = useState(false);
+
+  const pickupTimerRef = useRef(null);
+  const dropTimerRef = useRef(null);
+
+  const [pickupSuggestions, setPickupSuggestions] = useState([]);
+  const [dropSuggestions, setDropSuggestions] = useState([]);
+  const [pickupLoading, setPickupLoading] = useState(false);
+  const [dropLoading, setDropLoading] = useState(false);
+  const [activeField, setActiveField] = useState(null);
   
   const [formData, setFormData] = useState({
     // Section 1: Customer & Basic Details
@@ -81,6 +90,133 @@ const CreateBooking = () => {
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  useEffect(() => {
+    return () => {
+      if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
+      if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
+    };
+  }, []);
+
+  const fetchSuggestions = async (query, type) => {
+    if (!query || query.length < 3) {
+      if (type === 'pickup') setPickupSuggestions([]);
+      if (type === 'drop') setDropSuggestions([]);
+      return;
+    }
+
+    if (type === 'pickup') setPickupLoading(true);
+    else setDropLoading(true);
+
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=in`, {
+        headers: {
+          'User-Agent': 'BroomBoomUserApp/1.0'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (type === 'pickup') {
+          setPickupSuggestions(data);
+        } else {
+          setDropSuggestions(data);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching suggestions:", err);
+    } finally {
+      if (type === 'pickup') setPickupLoading(false);
+      else setDropLoading(false);
+    }
+  };
+
+  const fetchRouteDistance = async (lat1, lon1, lat2, lon2) => {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return;
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.routes && data.routes.length > 0) {
+          const distMeters = data.routes[0].distance;
+          const distKm = (distMeters / 1000.0).toFixed(2);
+          handleChange('distance', distKm);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching route distance:", err);
+      try {
+        const urlHttp = `http://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+        const res = await fetch(urlHttp);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.routes && data.routes.length > 0) {
+            const distMeters = data.routes[0].distance;
+            const distKm = (distMeters / 1000.0).toFixed(2);
+            handleChange('distance', distKm);
+          }
+        }
+      } catch (err2) {
+        console.error("Error fetching route distance via HTTP:", err2);
+      }
+    }
+  };
+
+  const handlePickupChange = (val) => {
+    handleChange('pickupAddress', val);
+    if (pickupTimerRef.current) clearTimeout(pickupTimerRef.current);
+    if (val.trim().length >= 3) {
+      pickupTimerRef.current = setTimeout(() => {
+        fetchSuggestions(val, 'pickup');
+      }, 500);
+    } else {
+      setPickupSuggestions([]);
+    }
+  };
+
+  const handleDropChange = (val) => {
+    handleChange('dropAddress', val);
+    if (dropTimerRef.current) clearTimeout(dropTimerRef.current);
+    if (val.trim().length >= 3) {
+      dropTimerRef.current = setTimeout(() => {
+        fetchSuggestions(val, 'drop');
+      }, 500);
+    } else {
+      setDropSuggestions([]);
+    }
+  };
+
+  const handleSelectPickup = (item) => {
+    handleChange('pickupAddress', item.display_name);
+    handleChange('pickupLat', item.lat);
+    handleChange('pickupLng', item.lon);
+    
+    const stateVal = item.address?.state || '';
+    if (stateVal) {
+      handleChange('state', stateVal);
+    }
+    
+    const pincodeVal = item.address?.postcode || '';
+    if (pincodeVal) {
+      handleChange('pincode', pincodeVal);
+    }
+    
+    setPickupSuggestions([]);
+  };
+
+  const handleSelectDrop = (item) => {
+    handleChange('dropAddress', item.display_name);
+    handleChange('dropLat', item.lat);
+    handleChange('dropLng', item.lon);
+    
+    setDropSuggestions([]);
+  };
+
+  useEffect(() => {
+    if (formData.pickupLat && formData.pickupLng && formData.dropLat && formData.dropLng) {
+      fetchRouteDistance(formData.pickupLat, formData.pickupLng, formData.dropLat, formData.dropLng);
+    }
+  }, [formData.pickupLat, formData.pickupLng, formData.dropLat, formData.dropLng]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -230,23 +366,81 @@ const CreateBooking = () => {
               Route & Timeline
             </h2>
             <div className="space-y-5">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pickup location</label>
                 <textarea 
                   required placeholder="Enter full pickup address..."
                   className="w-full bg-gray-50/50 border-gray-200 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-orange-100 outline-none transition-all min-h-[70px]"
                   value={formData.pickupAddress}
-                  onChange={(e) => handleChange('pickupAddress', e.target.value)}
+                  onChange={(e) => handlePickupChange(e.target.value)}
+                  onFocus={() => setActiveField('pickup')}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setActiveField(prev => prev === 'pickup' ? null : prev);
+                    }, 200);
+                  }}
                 />
+                {activeField === 'pickup' && (pickupLoading || pickupSuggestions.length > 0) && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-gray-100">
+                    {pickupLoading && (
+                      <div className="p-4 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
+                        Searching...
+                      </div>
+                    )}
+                    {!pickupLoading && pickupSuggestions.map((item, idx) => (
+                      <div 
+                        key={idx}
+                        onMouseDown={() => handleSelectPickup(item)}
+                        className="p-3 text-sm text-gray-700 hover:bg-orange-50 cursor-pointer transition-colors flex items-start gap-2.5"
+                      >
+                        <MapPin className="text-orange-500 shrink-0 mt-0.5" size={16} />
+                        <div>
+                          <div className="font-semibold text-gray-900">{item.display_name.split(',')[0]}</div>
+                          <div className="text-xs text-gray-500 line-clamp-1">{item.display_name}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Drop location</label>
                 <textarea 
                   required placeholder="Enter destination address..."
                   className="w-full bg-gray-50/50 border-gray-200 rounded-xl py-3 px-4 text-sm focus:ring-2 focus:ring-orange-100 outline-none transition-all min-h-[70px]"
                   value={formData.dropAddress}
-                  onChange={(e) => handleChange('dropAddress', e.target.value)}
+                  onChange={(e) => handleDropChange(e.target.value)}
+                  onFocus={() => setActiveField('drop')}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      setActiveField(prev => prev === 'drop' ? null : prev);
+                    }, 200);
+                  }}
                 />
+                {activeField === 'drop' && (dropLoading || dropSuggestions.length > 0) && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-gray-100">
+                    {dropLoading && (
+                      <div className="p-4 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
+                        Searching...
+                      </div>
+                    )}
+                    {!dropLoading && dropSuggestions.map((item, idx) => (
+                      <div 
+                        key={idx}
+                        onMouseDown={() => handleSelectDrop(item)}
+                        className="p-3 text-sm text-gray-700 hover:bg-orange-50 cursor-pointer transition-colors flex items-start gap-2.5"
+                      >
+                        <MapPin className="text-orange-500 shrink-0 mt-0.5" size={16} />
+                        <div>
+                          <div className="font-semibold text-gray-900">{item.display_name.split(',')[0]}</div>
+                          <div className="text-xs text-gray-500 line-clamp-1">{item.display_name}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-5">
                 <div className="space-y-1.5">
