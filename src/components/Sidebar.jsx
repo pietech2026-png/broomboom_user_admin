@@ -9,7 +9,8 @@ import {
   Settings,
   LogOut,
   Dog,
-  Globe
+  Globe,
+  Search
 } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
@@ -18,6 +19,7 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Car, label: 'New Bookings', path: '/bookings' },
     { icon: Users, label: 'Users', path: '/users' },
+    { icon: Search, label: 'Search Leads', path: '/search-leads' },
     { icon: Car, label: 'Car Categories', path: '/car-categories' },
     { icon: MapPin, label: 'Pricing Management', path: '/pricing' },
     { icon: Globe, label: 'City Management', path: '/cities' },

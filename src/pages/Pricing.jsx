@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Globe, Zap, Save, Trash2, Plus, Loader2, Edit2, X, Info, Car, 
-  Settings, Layers, Compass, CheckCircle2, ChevronRight, DollarSign
+  Settings, Layers, Compass, CheckCircle2, ChevronRight, DollarSign, Dog
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 
@@ -15,6 +15,7 @@ const Pricing = () => {
   const [categories, setCategories] = useState([]);
   const [globalMultiplier, setGlobalMultiplier] = useState(1.0);
   const [advancePercentage, setAdvancePercentage] = useState(20);
+  const [petCharge, setPetCharge] = useState(1000);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -96,9 +97,11 @@ const Pricing = () => {
       
       const multiplier = settingsData.find(s => s.key === 'globalMultiplier');
       const advance = settingsData.find(s => s.key === 'advancePercentage');
+      const pet = settingsData.find(s => s.key === 'petCharge');
       
       if (multiplier) setGlobalMultiplier(multiplier.value);
       if (advance) setAdvancePercentage(advance.value);
+      if (pet) setPetCharge(pet.value);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -620,6 +623,36 @@ const Pricing = () => {
                 className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
               >
                 <Save size={18} /> Save default advance
+              </button>
+            </div>
+          </div>
+
+          {/* Pet Charge Configuration */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
+                <Dog size={24} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">Pet Charge (Flat Amount)</h3>
+                <p className="text-xs text-gray-500">Flat amount automatically added to total ride fare for all pet cab bookings</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <input 
+                  type="number"
+                  value={petCharge}
+                  onChange={(e) => setPetCharge(e.target.value)}
+                  className="w-32 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-orange-100 outline-none pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">₹</span>
+              </div>
+              <button 
+                onClick={() => updateGlobalSetting('petCharge', parseInt(petCharge))}
+                className="flex items-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-all shadow-lg shadow-orange-100"
+              >
+                <Save size={18} /> Save Pet Charge
               </button>
             </div>
           </div>
