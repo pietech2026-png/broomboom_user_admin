@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Car, 
@@ -15,6 +15,7 @@ import {
 import logo from '../assets/logo.jpeg';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Car, label: 'New Bookings', path: '/bookings' },
@@ -54,7 +55,15 @@ const Sidebar = () => {
       </nav>
 
       <div className="p-4 border-t border-gray-50">
-        <button className="sidebar-link sidebar-link-inactive w-full text-red-500 hover:bg-red-50 hover:text-red-600">
+        <button 
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_name');
+            localStorage.removeItem('user_phone');
+            navigate('/login', { replace: true });
+          }}
+          className="sidebar-link sidebar-link-inactive w-full text-red-500 hover:bg-red-50 hover:text-red-600"
+        >
           <LogOut size={20} />
           <span className="font-medium">Logout</span>
         </button>
