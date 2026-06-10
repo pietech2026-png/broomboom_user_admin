@@ -1,9 +1,12 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Bell, Search, User } from 'lucide-react';
+import { Bell, Search, User, LogOut } from 'lucide-react';
 
 const AdminLayout = () => {
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const navigate = useNavigate();
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -25,14 +28,47 @@ const AdminLayout = () => {
               <span className="absolute top-2 right-2 w-2 h-2 bg-orange-500 rounded-full border-2 border-white"></span>
             </button>
             <div className="h-8 w-[1px] bg-gray-100"></div>
-            <div className="flex items-center gap-3 cursor-pointer group">
-              <div className="text-right">
-                <p className="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors">Admin User</p>
-                <p className="text-xs text-gray-500 font-medium">Super Admin</p>
-              </div>
-              <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center border border-primary-100">
-                <User className="text-primary-600" size={20} />
-              </div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-3 cursor-pointer group focus:outline-none"
+              >
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors">Admin User</p>
+                  <p className="text-xs text-gray-500 font-medium">Super Admin</p>
+                </div>
+                <div className="w-10 h-10 bg-primary-50 rounded-full flex items-center justify-center border border-primary-100 group-hover:border-primary-200 transition-colors">
+                  <User className="text-primary-600" size={20} />
+                </div>
+              </button>
+
+              {showProfileMenu && (
+                <>
+                  {/* Overlay to close menu on click outside */}
+                  <div 
+                    className="fixed inset-0 z-40 cursor-default" 
+                    onClick={() => setShowProfileMenu(false)}
+                  ></div>
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-3 duration-200">
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user_name');
+                        localStorage.removeItem('user_phone');
+                        navigate('/login', { replace: true });
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-2.5 transition-colors font-semibold"
+                    >
+                      <LogOut size={16} />
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
