@@ -1,52 +1,35 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
-import API_BASE_URL from '../config';
+import { Mail, Lock, Loader2, ShieldAlert, Sparkles } from 'lucide-react';
 import logo from '../assets/logo.jpeg';
 
 const Login = () => {
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Clean phone number validation
-    if (!phone.trim()) {
-      setError('Please enter a valid phone number');
-      setLoading(false);
-      return;
-    }
+    // Simulate small delay for premium feel
+    setTimeout(() => {
+      if (email.trim() === 'admin@gmail.com' && password === 'admin@1') {
+        // Store mock credentials
+        localStorage.setItem('token', 'mock-admin-session-token-abc123xyz');
+        localStorage.setItem('user_name', 'Admin User');
+        localStorage.setItem('user_phone', '+91 9999999999');
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: phone.trim() })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Authentication failed');
+        setLoading(false);
+        navigate('/', { replace: true });
+      } else {
+        setError('Invalid email or password');
+        setLoading(false);
       }
-
-      // Store credentials
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user_name', data.user.name);
-      localStorage.setItem('user_phone', data.user.phone);
-
-      // Navigate to dashboard
-      navigate('/', { replace: true });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    }, 800);
   };
 
   return (
@@ -84,14 +67,30 @@ const Login = () => {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Phone Number</label>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Email Address</label>
               <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                 <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="e.g. +91 9876543210"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. admin@gmail.com"
+                  className="w-full px-4 py-3.5 pl-12 bg-white/5 border border-white/10 text-white rounded-2xl text-sm font-bold placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all"
+                  required
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Password</label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
                   className="w-full px-4 py-3.5 pl-12 bg-white/5 border border-white/10 text-white rounded-2xl text-sm font-bold placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/50 transition-all"
                   required
                   disabled={loading}
