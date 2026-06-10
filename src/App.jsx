@@ -10,6 +10,7 @@ import CreateBooking from './pages/CreateBooking';
 import Cities from './pages/Cities';
 import SearchLeads from './pages/SearchLeads';
 import PetBookings from './pages/PetBookings';
+import AddOns from './pages/AddOns';
 const Coupons = () => <div className="p-4 bg-white rounded-2xl border border-gray-100 min-h-[400px] flex items-center justify-center text-gray-400 font-medium">Coupon Management Module Coming Soon</div>;
 const Drivers = () => <div className="p-4 bg-white rounded-2xl border border-gray-100 min-h-[400px] flex items-center justify-center text-gray-400 font-medium">Driver Management Module Coming Soon</div>;
 
@@ -29,6 +30,7 @@ function App() {
           <Route path="pet-bookings" element={<PetBookings />} />
           <Route path="coupons" element={<Coupons />} />
           <Route path="drivers" element={<Drivers />} />
+          <Route path="addons" element={<AddOns />} />
         </Route>
       </Routes>
     </BrowserRouter>

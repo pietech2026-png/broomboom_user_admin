@@ -26,6 +26,7 @@ const Sidebar = () => {
     { icon: Dog, label: 'Pet Cab Bookings', path: '/pet-bookings' },
     { icon: Ticket, label: 'Coupon Management', path: '/coupons' },
     { icon: Users, label: 'Driver Management', path: '/drivers' },
+    { icon: Settings, label: 'Add Ons', path: '/addons' },
   ];
 
   return (
