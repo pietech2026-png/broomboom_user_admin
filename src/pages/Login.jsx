@@ -51,7 +51,7 @@ const Login = () => {
             </div>
             <div className="text-center mt-2">
               <h1 className="text-2xl font-black tracking-tight text-white">
-                Broom Boom <span className="text-primary-400">Admin</span>
+                Broom Boom <span className="text-primary-400">Cabs</span>
               </h1>
               <p className="text-xs text-gray-400 font-medium mt-1">Authenticate to access admin controls</p>
             </div>

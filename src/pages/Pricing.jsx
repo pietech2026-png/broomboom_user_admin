@@ -14,7 +14,7 @@ const Pricing = () => {
   const [rentalRules, setRentalRules] = useState([]);
   const [categories, setCategories] = useState([]);
   const [globalMultiplier, setGlobalMultiplier] = useState(1.0);
-  const [advancePercentage, setAdvancePercentage] = useState(20);
+  const [advancePercentage, setAdvancePercentage] = useState([20, 25, 50]);
   const [petCharge, setPetCharge] = useState(1000);
   
   const [loading, setLoading] = useState(true);
@@ -100,7 +100,15 @@ const Pricing = () => {
       const pet = settingsData.find(s => s.key === 'petCharge');
       
       if (multiplier) setGlobalMultiplier(multiplier.value);
-      if (advance) setAdvancePercentage(advance.value);
+      if (advance) {
+        if (Array.isArray(advance.value)) {
+          setAdvancePercentage(advance.value);
+        } else if (typeof advance.value === 'string') {
+          setAdvancePercentage(advance.value.split(',').map(v => parseInt(v) || 0));
+        } else {
+          setAdvancePercentage([parseInt(advance.value) || 20, 25, 50]);
+        }
+      }
       if (pet) setPetCharge(pet.value);
     } catch (err) {
       setError(err.message);
@@ -605,21 +613,63 @@ const Pricing = () => {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-lg">Global Default Advance %</h3>
-                <p className="text-xs text-gray-500">Standard booking deposit percentage required from users</p>
+                <p className="text-xs text-gray-500">Standard booking deposit percentages required from users (up to 3 values can be set)</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="relative">
-                <input 
-                  type="number"
-                  value={advancePercentage}
-                  onChange={(e) => setAdvancePercentage(e.target.value)}
-                  className="w-32 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-primary-100 outline-none pr-8"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-gray-400">%</span>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={Array.isArray(advancePercentage) ? (advancePercentage[0] !== undefined ? advancePercentage[0] : '') : advancePercentage}
+                    onChange={(e) => {
+                      const newVals = Array.isArray(advancePercentage) ? [...advancePercentage] : [parseInt(advancePercentage) || 0, 25, 50];
+                      newVals[0] = parseInt(e.target.value) || 0;
+                      setAdvancePercentage(newVals);
+                    }}
+                    className="w-24 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-primary-100 outline-none pr-6"
+                    placeholder="Val 1"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-xs">%</span>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={Array.isArray(advancePercentage) ? (advancePercentage[1] !== undefined ? advancePercentage[1] : '') : ''}
+                    onChange={(e) => {
+                      const newVals = Array.isArray(advancePercentage) ? [...advancePercentage] : [parseInt(advancePercentage) || 0, 25, 50];
+                      newVals[1] = parseInt(e.target.value) || 0;
+                      setAdvancePercentage(newVals);
+                    }}
+                    className="w-24 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-primary-100 outline-none pr-6"
+                    placeholder="Val 2"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-xs">%</span>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="number"
+                    value={Array.isArray(advancePercentage) ? (advancePercentage[2] !== undefined ? advancePercentage[2] : '') : ''}
+                    onChange={(e) => {
+                      const newVals = Array.isArray(advancePercentage) ? [...advancePercentage] : [parseInt(advancePercentage) || 0, 25, 50];
+                      newVals[2] = parseInt(e.target.value) || 0;
+                      setAdvancePercentage(newVals);
+                    }}
+                    className="w-24 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-primary-100 outline-none pr-6"
+                    placeholder="Val 3"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-xs">%</span>
+                </div>
               </div>
               <button 
-                onClick={() => updateGlobalSetting('advancePercentage', parseInt(advancePercentage))}
+                onClick={async () => {
+                  const vals = (Array.isArray(advancePercentage) ? advancePercentage : [parseInt(advancePercentage) || 0])
+                    .map(v => parseInt(v) || 0)
+                    .filter(v => v >= 0);
+                  await updateGlobalSetting('advancePercentage', vals);
+                  const payOptions = Array.from(new Set([0, ...vals, 100])).sort((a, b) => a - b);
+                  await updateGlobalSetting('pay_advance_options', payOptions);
+                }}
                 className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
               >
                 <Save size={18} /> Save default advance

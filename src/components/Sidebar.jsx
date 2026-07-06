@@ -35,7 +35,7 @@ const Sidebar = () => {
       <div className="p-8 flex items-center gap-3">
         <img src={logo} className="w-10 h-10 object-cover rounded-xl shadow-md border border-gray-100" alt="Broom Boom Logo" />
         <span className="text-2xl font-bold tracking-tight text-gray-900">
-          Broom Boom<span className="text-primary-600">Admin</span>
+          Broom Boom <span className="text-primary-600">Cabs</span>
         </span>
       </div>
 
