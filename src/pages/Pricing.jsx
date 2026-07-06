@@ -148,7 +148,7 @@ const Pricing = () => {
       includedKms: 80,
       baseFare: 0,
       advanceType: 'Percentage',
-      advanceValue: 20,
+      advanceValue: [20, 25, 50],
       status: 'Active'
     });
     setIsModalOpen(true);
@@ -156,13 +156,24 @@ const Pricing = () => {
 
   const handleOpenEditModal = (rule) => {
     setEditingRule(rule);
+    let advVal = rule.advanceValue;
+    if (rule.advanceType === 'Percentage') {
+      if (Array.isArray(rule.advanceValue)) {
+        advVal = rule.advanceValue;
+      } else if (typeof rule.advanceValue === 'string') {
+        advVal = rule.advanceValue.split(',').map(Number);
+      } else {
+        advVal = [parseInt(rule.advanceValue) || 20, 25, 50];
+      }
+    }
     setFormData({
       ...rule,
       // Ensure empty strings don't display as undefined in coordinate fields
       pickupLat: rule.pickupLat !== undefined ? rule.pickupLat : '',
       pickupLng: rule.pickupLng !== undefined ? rule.pickupLng : '',
       dropLat: rule.dropLat !== undefined ? rule.dropLat : '',
-      dropLng: rule.dropLng !== undefined ? rule.dropLng : ''
+      dropLng: rule.dropLng !== undefined ? rule.dropLng : '',
+      advanceValue: advVal
     });
     setIsModalOpen(true);
   };
@@ -209,7 +220,13 @@ const Pricing = () => {
         payload.extraHourRate = parseFloat(payload.extraHourRate);
         if (payload.seater !== '') payload.seater = parseInt(payload.seater);
       }
-      payload.advanceValue = parseFloat(payload.advanceValue);
+      if (payload.advanceType === 'Percentage') {
+        payload.advanceValue = (Array.isArray(payload.advanceValue) ? payload.advanceValue : [parseInt(payload.advanceValue) || 20])
+          .map(v => parseInt(v) || 0)
+          .filter(v => v >= 0);
+      } else {
+        payload.advanceValue = parseFloat(payload.advanceValue) || 0;
+      }
 
       const response = await fetch(url, {
         method,
@@ -380,7 +397,7 @@ const Pricing = () => {
                         <div>Waiting: ₹{rule.waitingCharge}/min</div>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                        {rule.advanceType === 'Percentage' ? `${rule.advanceValue}%` : `₹${rule.advanceValue}`}
+                        {rule.advanceType === 'Percentage' ? (Array.isArray(rule.advanceValue) ? rule.advanceValue.map(v => `${v}%`).join(', ') : `${rule.advanceValue}%`) : `₹${rule.advanceValue}`}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -466,7 +483,7 @@ const Pricing = () => {
                         <div className={rule.includeNightAllowance ? 'text-green-600' : 'text-gray-400'}>Night Bata: {rule.includeNightAllowance ? 'Included' : 'Excluded'}</div>
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                        {rule.advanceType === 'Percentage' ? `${rule.advanceValue}%` : `₹${rule.advanceValue}`}
+                        {rule.advanceType === 'Percentage' ? (Array.isArray(rule.advanceValue) ? rule.advanceValue.map(v => `${v}%`).join(', ') : `${rule.advanceValue}%`) : `₹${rule.advanceValue}`}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -537,7 +554,7 @@ const Pricing = () => {
                         Extra KM: ₹{rule.extraKmRate}/km | Extra Hr: ₹{rule.extraHourRate}/hr
                       </td>
                       <td className="px-6 py-4 text-sm font-semibold text-gray-700">
-                        {rule.advanceType === 'Percentage' ? `${rule.advanceValue}%` : `₹${rule.advanceValue}`}
+                        {rule.advanceType === 'Percentage' ? (Array.isArray(rule.advanceValue) ? rule.advanceValue.map(v => `${v}%`).join(', ') : `${rule.advanceValue}%`) : `₹${rule.advanceValue}`}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -667,7 +684,7 @@ const Pricing = () => {
                     .map(v => parseInt(v) || 0)
                     .filter(v => v >= 0);
                   await updateGlobalSetting('advancePercentage', vals);
-                  const payOptions = Array.from(new Set([0, ...vals, 100])).sort((a, b) => a - b);
+                  const payOptions = Array.from(new Set(vals)).sort((a, b) => a - b);
                   await updateGlobalSetting('pay_advance_options', payOptions);
                 }}
                 className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100"
@@ -1125,38 +1142,95 @@ const Pricing = () => {
               )}
 
               {/* ADVANCE PAYMENT AND STATUS LOGIC */}
-              <div className="grid grid-cols-3 gap-4 border-t border-gray-50 pt-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Advance Type</label>
-                  <select 
-                    value={formData.advanceType}
-                    onChange={(e) => setFormData({...formData, advanceType: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                  >
-                    <option value="Percentage">Percentage (%)</option>
-                    <option value="Fixed">Fixed Amount (₹)</option>
-                  </select>
+              <div className="border-t border-gray-50 pt-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Advance Type</label>
+                    <select 
+                      value={formData.advanceType}
+                      onChange={(e) => {
+                        const newType = e.target.value;
+                        setFormData({
+                          ...formData,
+                          advanceType: newType,
+                          advanceValue: newType === 'Percentage' ? [20, 25, 50] : 0
+                        });
+                      }}
+                      className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                    >
+                      <option value="Percentage">Percentage (%)</option>
+                      <option value="Fixed">Fixed Amount (₹)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Rule Status</label>
+                    <select 
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Advance Value</label>
-                  <input 
-                    type="number" required
-                    value={formData.advanceValue}
-                    onChange={(e) => setFormData({...formData, advanceValue: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Rule Status</label>
-                  <select 
-                    value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
+
+                {formData.advanceType === 'Percentage' ? (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Advance Percentages (up to 3 values)</label>
+                    <div className="flex gap-4">
+                      <div className="relative flex-1">
+                        <input 
+                          type="number" placeholder="Val 1"
+                          value={Array.isArray(formData.advanceValue) ? (formData.advanceValue[0] !== undefined ? formData.advanceValue[0] : '') : formData.advanceValue}
+                          onChange={(e) => {
+                            const newVals = Array.isArray(formData.advanceValue) ? [...formData.advanceValue] : [parseInt(formData.advanceValue) || 0, 25, 50];
+                            newVals[0] = parseInt(e.target.value) || 0;
+                            setFormData({...formData, advanceValue: newVals});
+                          }}
+                          className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 pr-6"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                      <div className="relative flex-1">
+                        <input 
+                          type="number" placeholder="Val 2"
+                          value={Array.isArray(formData.advanceValue) ? (formData.advanceValue[1] !== undefined ? formData.advanceValue[1] : '') : ''}
+                          onChange={(e) => {
+                            const newVals = Array.isArray(formData.advanceValue) ? [...formData.advanceValue] : [parseInt(formData.advanceValue) || 0, 25, 50];
+                            newVals[1] = parseInt(e.target.value) || 0;
+                            setFormData({...formData, advanceValue: newVals});
+                          }}
+                          className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 pr-6"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                      <div className="relative flex-1">
+                        <input 
+                          type="number" placeholder="Val 3"
+                          value={Array.isArray(formData.advanceValue) ? (formData.advanceValue[2] !== undefined ? formData.advanceValue[2] : '') : ''}
+                          onChange={(e) => {
+                            const newVals = Array.isArray(formData.advanceValue) ? [...formData.advanceValue] : [parseInt(formData.advanceValue) || 0, 25, 50];
+                            newVals[2] = parseInt(e.target.value) || 0;
+                            setFormData({...formData, advanceValue: newVals});
+                          }}
+                          className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20 pr-6"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">%</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Advance Value (Fixed Amount ₹)</label>
+                    <input 
+                      type="number" required
+                      value={formData.advanceValue}
+                      onChange={(e) => setFormData({...formData, advanceValue: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Actions Footer */}
