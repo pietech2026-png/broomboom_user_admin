@@ -23,6 +23,8 @@ const Pricing = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
+  const [stateSuggestions, setStateSuggestions] = useState([]);
+  const [stateLoading, setStateLoading] = useState(false);
 
   // Consolidated Form Data State
   const [formData, setFormData] = useState({
@@ -176,6 +178,30 @@ const Pricing = () => {
       advanceValue: advVal
     });
     setIsModalOpen(true);
+  };
+
+  const fetchStateSuggestions = async (query) => {
+    if (!query || query.length < 3) {
+      setStateSuggestions([]);
+      return;
+    }
+    setStateLoading(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=in`, {
+        headers: {
+          'User-Agent': 'BroomBoomAdmin/1.0'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const filtered = data.filter(item => item.address && item.address.state);
+        setStateSuggestions(filtered);
+      }
+    } catch (err) {
+      console.error("Error fetching state suggestions:", err);
+    } finally {
+      setStateLoading(false);
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -776,14 +802,38 @@ const Pricing = () => {
               {/* STATE ROW (Active in State, Rental, optional in Route) */}
               {(activeTab === 'state' || activeTab === 'rental') && (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">State</label>
+                  <div className="space-y-1 relative">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">State (Search city or state)</label>
                     <input 
-                      type="text" required placeholder="e.g. West Bengal"
+                      type="text" required placeholder="Type city or state (e.g. Ujjain or Madhya Pradesh)"
                       value={formData.state}
-                      onChange={(e) => setFormData({...formData, state: e.target.value})}
+                      onChange={(e) => {
+                        setFormData({...formData, state: e.target.value});
+                        fetchStateSuggestions(e.target.value);
+                      }}
                       className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary-500/20"
                     />
+                    {stateLoading && <span className="absolute right-3 top-9 text-xs text-gray-400">Searching...</span>}
+                    {stateSuggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+                        {stateSuggestions.map((item, idx) => (
+                          <div 
+                            key={idx}
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                state: item.address.state
+                              });
+                              setStateSuggestions([]);
+                            }}
+                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs font-bold text-gray-700 border-b border-gray-50"
+                          >
+                            <span className="text-gray-900">{item.display_name}</span>
+                            <div className="text-[10px] text-primary-600 mt-0.5">Resolves to state: {item.address.state}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Car Category</label>
