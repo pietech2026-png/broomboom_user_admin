@@ -5,6 +5,45 @@ import {
 } from 'lucide-react';
 import API_BASE_URL from '../config';
 
+const INDIAN_STATES = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry"
+];
+
 const Pricing = () => {
   const [activeTab, setActiveTab] = useState('state');
   
@@ -180,28 +219,15 @@ const Pricing = () => {
     setIsModalOpen(true);
   };
 
-  const fetchStateSuggestions = async (query) => {
-    if (!query || query.length < 3) {
+  const fetchStateSuggestions = (query) => {
+    if (!query || query.trim() === '') {
       setStateSuggestions([]);
       return;
     }
-    setStateLoading(true);
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=in`, {
-        headers: {
-          'User-Agent': 'BroomBoomAdmin/1.0'
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const filtered = data.filter(item => item.address && item.address.state);
-        setStateSuggestions(filtered);
-      }
-    } catch (err) {
-      console.error("Error fetching state suggestions:", err);
-    } finally {
-      setStateLoading(false);
-    }
+    const filtered = INDIAN_STATES.filter(state => 
+      state.toLowerCase().includes(query.toLowerCase())
+    );
+    setStateSuggestions(filtered);
   };
 
   const handleFormSubmit = async (e) => {
@@ -815,21 +841,20 @@ const Pricing = () => {
                     />
                     {stateLoading && <span className="absolute right-3 top-9 text-xs text-gray-400">Searching...</span>}
                     {stateSuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
-                        {stateSuggestions.map((item, idx) => (
+                      <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto">
+                        {stateSuggestions.map((stateName, idx) => (
                           <div 
                             key={idx}
                             onClick={() => {
                               setFormData({
                                 ...formData,
-                                state: item.address.state
+                                state: stateName
                               });
                               setStateSuggestions([]);
                             }}
                             className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs font-bold text-gray-700 border-b border-gray-50"
                           >
-                            <span className="text-gray-900">{item.display_name}</span>
-                            <div className="text-[10px] text-primary-600 mt-0.5">Resolves to state: {item.address.state}</div>
+                            <span className="text-gray-900">{stateName}</span>
                           </div>
                         ))}
                       </div>
